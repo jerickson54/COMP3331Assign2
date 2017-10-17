@@ -7,8 +7,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 public class RoutingPerformance {
 	
@@ -32,6 +34,12 @@ public class RoutingPerformance {
 	 * average source to destination cumulatative propagation delay per successfully routed circuit
 	 */
 	
+	private static int totalNumVirtualNetworkConnections;
+	private int numberOfPackets;
+	private int numberSuccessPackets;
+	private int numberBlockedPackets;
+	private double averageNumHops;
+	private double cumPropDelay;
 
 	
 	public static void main(String args[]){
@@ -39,7 +47,12 @@ public class RoutingPerformance {
 		//needed for dumb inner class
 		RoutingPerformance p = new RoutingPerformance();
 		
+		//for testing in eclipse
+		String routingScheme = "SHP";
 		
+		
+		
+	/*	
 	if(args.length!= 5){
 	
 		System.out.println("Missing arguements");
@@ -62,13 +75,15 @@ public class RoutingPerformance {
 		return;
 	}
 	
-	
+	*/
 	//parse the topology File
-	//String topologyFileName = "topology.txt";
-	String topologyFileName = args[2];
+	String topologyFileName = "topology.txt";
+	//String topologyFileName = args[2];
 	
 	//use a map to store topology data
 	Map <String, valueTopology> topologyMap = new HashMap<String, valueTopology>();
+	//calculate all the paths
+	Map <String,Boolean> allPaths = new HashMap<String, Boolean>();
 	
 	
 	
@@ -78,10 +93,18 @@ public class RoutingPerformance {
 		Scanner sc = new Scanner(new File(topologyFileName));
 	
 		while(sc.hasNextLine()){
+		
+			
 		String nextLine = sc.nextLine();
 		String details[] = nextLine.split(" ");
 
 		String key = details[0] + details[1];
+		String inverseKey = details[1] + details[0];
+		
+		allPaths.put(key, true);
+		
+		allPaths.put(inverseKey,true);
+
 		
 		int propD = Integer.parseInt(details[2]);
 		int linkCap = Integer.parseInt(details[3]);
@@ -90,13 +113,28 @@ public class RoutingPerformance {
 		topologyMap.put(key, temp);
 		}
 		
+		
 	
 			
 		}catch(IOException e){
 			System.out.println("Failed to find the file.");
 		}
 	
+		//output paths
+		/*
+		for(Map.Entry<String,ArrayList<path>> entry : allPaths.entrySet()){
+			System.out.println("Key: " + entry.getKey());
+			System.out.println("value: ");
+			for(path s : entry.getValue()){
+				System.out.print(s.getDest());
+				System.out.print(s.isOpen());
+			}
+			System.out.println();
+		}*/
 		
+	
+	
+	
 	
 	
 	
@@ -133,16 +171,17 @@ public class RoutingPerformance {
 			System.out.println("Failed to find the file.");
 		}
 
+	totalNumVirtualNetworkConnections = allWorkLoad.size();
 	
 	
-	
-	
+	/*
 	//packet rate is positive integer 
 	int packetRate = Integer.parseInt(args[4]);
 	if(packetRate < 0){
 		System.out.println("Packet rate cannnot be negative. Try again");
 		return;
 	}
+	*/
 	
 	//timer stuff
 	Date currentTime = new Date();
@@ -150,6 +189,34 @@ public class RoutingPerformance {
 	
 	long startTime = System.nanoTime();
 	
+	//dijkstra's algorithm with cost of each link as 1 and no delay or load factor
+	if(routingScheme.equals("SHP")){
+		
+		int currentlyAt = 0;
+		
+		//loop through the whole workload file
+		while(currentlyAt!=allWorkLoad.size()){
+			
+			
+		//get first time for connection establish
+		while((System.nanoTime() - startTime)/10000000 <= allWorkLoad.get(currentlyAt).getTimeConnectionEstablish()){
+			String sourceToDest = allWorkLoad.get(currentlyAt).getSourceNode()+allWorkLoad.get(currentlyAt).getDestinationNode();
+			boolean pathIsOpen = false;
+			if(allPaths.get(sourceToDest) != null)
+				pathIsOpen = true;
+			//nodes are adjacent
+			if(allPaths.containsKey(sourceToDest) && pathIsOpen){
+				
+			}
+			
+			//not adjacent
+			else{
+				
+			}
+		}
+		}
+		
+	}
 	//double timeElapsed = (System.nanoTime() - startTime)/10000000;
 	
 	
@@ -162,6 +229,9 @@ public class RoutingPerformance {
 	
 	
 	}
+	
+	
+	
 	
 	public class valueTopology{
 		private int propogationDelay;
@@ -191,6 +261,34 @@ public class RoutingPerformance {
 		
 		
 	}
+	/*
+	public class path{
+		private String dest;
+		private boolean isOpen;
+		
+		
+		public path(String dest, boolean isOpen) {
+			super();
+			this.dest = dest;
+			this.isOpen = isOpen;
+		}
+		
+		public String getDest() {
+			return dest;
+		}
+		public void setDest(String dest) {
+			this.dest = dest;
+		}
+		public boolean isOpen() {
+			return isOpen;
+		}
+		public void setisOpen(boolean isOpen) {
+			this.isOpen = isOpen;
+		}
+		
+		
+	}
+	*/
 	
 	public class workLoad{
 		
