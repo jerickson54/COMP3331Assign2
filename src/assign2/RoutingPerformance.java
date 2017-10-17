@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
@@ -19,6 +20,16 @@ public class RoutingPerformance {
 	 * WORKLOAD FILE-virtual network connection requests
 	 * PACKET_RATE- positive integer that shows the number of packets per second 
 	 * 
+	 */
+	
+	/*NEED the following statistics
+	 * 
+	 * total number of virtual network connections
+	 * total number of packets
+	 * number of successfully routed packets
+	 * number of blocked packets
+	 * average number of hops
+	 * average source to destination cumulatative propagation delay per successfully routed circuit
 	 */
 	
 
@@ -132,6 +143,15 @@ public class RoutingPerformance {
 		System.out.println("Packet rate cannnot be negative. Try again");
 		return;
 	}
+	
+	//timer stuff
+	Date currentTime = new Date();
+	long currentTimeStart = currentTime.getTime();
+	
+	long startTime = System.nanoTime();
+	
+	//double timeElapsed = (System.nanoTime() - startTime)/10000000;
+	
 	
 	
 	
