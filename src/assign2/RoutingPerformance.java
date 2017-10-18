@@ -367,6 +367,14 @@ public class RoutingPerformance {
 		}
 		averageNumHops = averageNumHops/totalNumVirtualNetworkConnections;
 		numberOfPackets = numberSuccessPackets + numberBlockedPackets;
+		
+		int totalProp = 0;
+		
+		for(Map.Entry<String,valueTopology> entry : topologyMap.entrySet()){
+		totalProp += entry.getValue().getPropogationDelay();
+		}
+		
+		cumPropDelay = (double)totalProp/topologyMap.size();
 		printStatistics();
 		
 	} //SHP bracket
