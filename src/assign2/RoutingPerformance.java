@@ -39,12 +39,12 @@ public class RoutingPerformance {
 	 * average source to destination cumulatative propagation delay per successfully routed circuit
 	 */
 	
-	private static int totalNumVirtualNetworkConnections;
-	private static int numberOfPackets;
-	private int numberSuccessPackets;
-	private int numberBlockedPackets;
-	private double averageNumHops;
-	private double cumPropDelay;
+	private static int totalNumVirtualNetworkConnections = 0;
+	private static int numberOfPackets = 0;
+	private static int numberSuccessPackets = 0;
+	private static int numberBlockedPackets = 0;
+	private static double averageNumHops = 0.0;
+	private static double cumPropDelay = 0.0;
 
 	private static ArrayList<String> pathsToDest = new ArrayList<String>();
 
@@ -128,7 +128,7 @@ public class RoutingPerformance {
 		}
 	
 		
-		/*
+		
 		for(Map.Entry<String,Boolean> entry : allPaths.entrySet()){
 			//if(entry.getKey().equals("CD"))
 				//allPaths.put("CD", false);
@@ -140,7 +140,7 @@ public class RoutingPerformance {
 			//}
 			System.out.println();
 		}
-		*/
+		
 		
 	
 	
@@ -202,24 +202,38 @@ public class RoutingPerformance {
 	//dijkstra's algorithm with cost of each link as 1 and no delay or load factor
 	if(routingScheme.equals("SHP")){
 		
+		//find the time when this is complete
+		double maxTimeRun = 0.0;
+		for(workLoad w: allWorkLoad){
+			if((w.getDuration()+w.getTimeConnectionEstablish() > maxTimeRun))
+				maxTimeRun = (w.getDuration()+w.getTimeConnectionEstablish());
+					
+		}
 		
 		
-		//loop through the whole workload file
-		for(int i = 0; i<allWorkLoad.size(); i++){
 		
-			
-			
+		
 		//get first time for connection establish
-		while((System.nanoTime() - startTime)/10000000 <= allWorkLoad.get(i).getTimeConnectionEstablish()){
+			while(((double)System.nanoTime() - startTime)/10000000 <= maxTimeRun){
+		for(int i = 0; i < allWorkLoad.size(); ++i){
+			
+			//System.out.println(((double)System.nanoTime() - startTime)/10000000);
+			
+			
 			String sourceToDest = allWorkLoad.get(i).getSourceNode()+allWorkLoad.get(i).getDestinationNode();
 			boolean pathIsOpen = false;
 			
-			if(allPaths.get(sourceToDest) != null)
-				pathIsOpen = true;
+			//make sure it exists so we arent getting null
+			if(allPaths.get(sourceToDest) != null){
+				if(allPaths.get(sourceToDest))
+					pathIsOpen = true;
+			}
+				
+			
 			//nodes are adjacent
 			if(allPaths.containsKey(sourceToDest) && pathIsOpen){
 				//transmit during the duration of the time the path is used
-				numberOfPackets += packetRate * allWorkLoad.get(i).getDuration(); 
+				numberOfPackets += packetRate * (allWorkLoad.get(i).getDuration() - allWorkLoad.get(i).getTimeConnectionEstablish()); 
 			
 				//close path
 				allPaths.put(sourceToDest, false); 
@@ -243,15 +257,39 @@ public class RoutingPerformance {
 						desiredPath = s;
 					}
 				}
-					System.out.println("Desired path: "+ desiredPath);		
+					//System.out.println(desiredPath);
 				
-			}
+					//close the path chosen
+					for( int c = 0; c < desiredPath.length()-1; ++c)
+						allPaths.put(Character.toString(desiredPath.charAt(c))+Character.toString(desiredPath.charAt(c+1)),false);
+					
+					System.out.println("AFTER OPEN CLOSE");
+					for(Map.Entry<String,Boolean> entry : allPaths.entrySet()){
+						//if(entry.getKey().equals("CD"))
+							//allPaths.put("CD", false);
+						System.out.println("Key: " + entry.getKey());
+						System.out.println("value: "+ entry.getValue());
+						//for(path s : entry.getValue()){
+						//	System.out.print(s.getDest());
+						//	System.out.print(s.isOpen());
+						//}
+						System.out.println();
+					}
+					
+					
+					numberOfPackets += packetRate * (allWorkLoad.get(i).getDuration() - allWorkLoad.get(i).getTimeConnectionEstablish());
+					
+					//close the paths
+					
+				
+				}
 			
-			}//while 
-		}//for loop
+			}
+			}
 		
+		printStatistics();
 		
-	}
+	} //SHP bracket
 	//double timeElapsed = (System.nanoTime() - startTime)/10000000;
 	
 	
@@ -288,6 +326,18 @@ public class RoutingPerformance {
 	            visited.removeLast();
 	        }
 		
+	}
+	
+	private static void printStatistics(){
+		
+		System.out.println("Total number of virtual connection requests: " + totalNumVirtualNetworkConnections);
+		System.out.println("Total number of packets: " + numberOfPackets);
+		System.out.println("Total number of successfully routed packets: " + numberSuccessPackets);
+		System.out.println("Percentage of successfully routed packets: " + (double)numberSuccessPackets/numberOfPackets);
+		System.out.println("Number of blocked packets: " + numberBlockedPackets);
+		System.out.println("Percentage of blocked packets: " + (double)numberBlockedPackets/numberOfPackets );
+		System.out.println("Average number of hops per circuit: " + averageNumHops);
+		System.out.println("Average cumulative propagation delay per circuit: " + cumPropDelay);
 	}
 	
 	 private static void buildPathsToDest(LinkedList<String> visited) {
