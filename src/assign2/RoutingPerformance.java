@@ -47,6 +47,7 @@ public class RoutingPerformance {
 	private static double cumPropDelay = 0.0;
 
 	private static ArrayList<String> pathsToDest = new ArrayList<String>();
+	
 
 	
 	public static void main(String args[]){
@@ -128,7 +129,7 @@ public class RoutingPerformance {
 		}
 	
 		
-		
+		/*
 		for(Map.Entry<String,Boolean> entry : allPaths.entrySet()){
 			//if(entry.getKey().equals("CD"))
 				//allPaths.put("CD", false);
@@ -139,7 +140,7 @@ public class RoutingPerformance {
 			//	System.out.print(s.isOpen());
 			//}
 			System.out.println();
-		}
+		}*/
 		
 		
 	
@@ -171,7 +172,7 @@ public class RoutingPerformance {
 		
 		double duration = Double.parseDouble(details[3]);
 		
-		workLoad temp = p.new workLoad(connectEsta,sourceN,destN,duration);
+		workLoad temp = p.new workLoad(connectEsta,sourceN,destN,duration,null);
 		allWorkLoad.add(temp);
 		}
 		
@@ -211,11 +212,39 @@ public class RoutingPerformance {
 		}
 		
 		
+		//black magic
+		double topTime = 1.0;
 		
+		
+		
+		
+	
 		
 		//get first time for connection establish
 			while(((double)System.nanoTime() - startTime)/10000000 <= maxTimeRun){
 		for(int i = 0; i < allWorkLoad.size(); ++i){
+			
+			if((((double)System.nanoTime() - startTime)/10000000) > topTime){
+				
+				topTime += 1;
+				for(int x = 0; x < allWorkLoad.size();++x){
+				allWorkLoad.get(x).setHasBeenAddedSuccessPackets(true);
+				allWorkLoad.get(x).setHasBeenAddedBlockedPackets(true);
+				}
+				
+			}
+			
+			
+
+			
+			//check if the paths need open
+			if((allWorkLoad.get(i).getDuration() < (double)System.nanoTime() - startTime /10000000)&& allWorkLoad.get(i).getActualPathTaken() != null){
+				for(int c = 0; c < allWorkLoad.get(i).getActualPathTaken().length()-1;++c)
+					allPaths.put(Character.toString(allWorkLoad.get(i).getActualPathTaken().charAt(c))+Character.toString(allWorkLoad.get(i).getActualPathTaken().charAt(c+1)),true);
+	
+			}
+			
+			
 			
 			//System.out.println(((double)System.nanoTime() - startTime)/10000000);
 			
@@ -229,15 +258,36 @@ public class RoutingPerformance {
 					pathIsOpen = true;
 			}
 				
+			//set the path taken if adjacent, cant factor in if the path is open
+			if(allPaths.containsKey(sourceToDest)){
+				
+				if(allWorkLoad.get(i).getActualPathTaken() == null)
+					allWorkLoad.get(i).setActualPathTaken(sourceToDest);
+			}
 			
 			//nodes are adjacent
 			if(allPaths.containsKey(sourceToDest) && pathIsOpen){
+				
+				
+				
 				//transmit during the duration of the time the path is used
-				numberOfPackets += packetRate * (allWorkLoad.get(i).getDuration() - allWorkLoad.get(i).getTimeConnectionEstablish()); 
+				if(allWorkLoad.get(i).isHasBeenAddedBlockedPackets()){
+					numberSuccessPackets += packetRate; 
+					allWorkLoad.get(i).setHasBeenAddedSuccessPackets(false);
+				}
 			
 				//close path
 				allPaths.put(sourceToDest, false); 
 			}
+			
+			if(allPaths.containsKey(sourceToDest) && !pathIsOpen){
+				
+				if(allWorkLoad.get(i).isHasBeenAddedBlockedPackets()){
+				numberBlockedPackets += packetRate;
+				allWorkLoad.get(i).setHasBeenAddedBlockedPackets(false);
+				}
+			}
+			
 			
 			//not adjacent
 			else{
@@ -257,12 +307,20 @@ public class RoutingPerformance {
 						desiredPath = s;
 					}
 				}
-					//System.out.println(desiredPath);
+					
 				
+					//continue to populate the actual path taken
+					if(allWorkLoad.get(i).getActualPathTaken() == null)
+					allWorkLoad.get(i).setActualPathTaken(desiredPath);
+					
 					//close the path chosen
+					if(allWorkLoad.get(i).getDuration() > (double)System.nanoTime() - startTime /10000000){
 					for( int c = 0; c < desiredPath.length()-1; ++c)
 						allPaths.put(Character.toString(desiredPath.charAt(c))+Character.toString(desiredPath.charAt(c+1)),false);
+					}
 					
+					
+					/*
 					System.out.println("AFTER OPEN CLOSE");
 					for(Map.Entry<String,Boolean> entry : allPaths.entrySet()){
 						//if(entry.getKey().equals("CD"))
@@ -274,12 +332,29 @@ public class RoutingPerformance {
 						//	System.out.print(s.isOpen());
 						//}
 						System.out.println();
+					}*/
+					
+					//see if path is currently open
+					boolean pathIsCurrentlyOpen = true;
+					for(int c = 0; c < allWorkLoad.get(i).getActualPathTaken().length() - 1; ++c){
+						if(!(allPaths.get(Character.toString(allWorkLoad.get(i).getActualPathTaken().charAt(c))+ Character.toString(allWorkLoad.get(i).getActualPathTaken().charAt(c+1)))))
+							pathIsCurrentlyOpen = false;
+								
+					}
+					
+				
+					
+					if(allWorkLoad.get(i).isHasBeenAddedSuccessPackets() && pathIsCurrentlyOpen){
+						numberSuccessPackets += packetRate;
+					allWorkLoad.get(i).setHasBeenAddedSuccessPackets(false);
+					}
+					
+					if(allWorkLoad.get(i).isHasBeenAddedBlockedPackets() && !pathIsCurrentlyOpen){
+						numberBlockedPackets += packetRate;
+						allWorkLoad.get(i).setHasBeenAddedBlockedPackets(false);
 					}
 					
 					
-					numberOfPackets += packetRate * (allWorkLoad.get(i).getDuration() - allWorkLoad.get(i).getTimeConnectionEstablish());
-					
-					//close the paths
 					
 				
 				}
@@ -287,6 +362,11 @@ public class RoutingPerformance {
 			}
 			}
 		
+		for(workLoad w: allWorkLoad){
+			averageNumHops += w.getActualPathTaken().length()-1;
+		}
+		averageNumHops = averageNumHops/totalNumVirtualNetworkConnections;
+		numberOfPackets = numberSuccessPackets + numberBlockedPackets;
 		printStatistics();
 		
 	} //SHP bracket
@@ -450,14 +530,46 @@ public class RoutingPerformance {
 		private String sourceNode;
 		private String destinationNode;
 		private double duration;
+		private String actualPathTaken;
+		private boolean hasBeenAddedSuccessPackets;
+		private boolean hasBeenAddedBlockedPackets;
 		
-		public workLoad(double timeConnectionEstablish, String sourceNode, String destinationNode, double duration) {
+		public workLoad(double timeConnectionEstablish, String sourceNode, String destinationNode, double duration, String actualPathTaken) {
 			super();
 			this.timeConnectionEstablish = timeConnectionEstablish;
 			this.sourceNode = sourceNode;
 			this.destinationNode = destinationNode;
 			this.duration = duration;
+			this.actualPathTaken= actualPathTaken;
+			boolean hasBeenAddedSuccessPackets = true;
+			boolean hasBeenAddedBlockedPackets = true;
 		}
+		
+		
+
+		public boolean isHasBeenAddedSuccessPackets() {
+			return hasBeenAddedSuccessPackets;
+		}
+
+
+
+		public void setHasBeenAddedSuccessPackets(boolean hasBeenAddedSuccessPackets) {
+			this.hasBeenAddedSuccessPackets = hasBeenAddedSuccessPackets;
+		}
+
+
+
+		public boolean isHasBeenAddedBlockedPackets() {
+			return hasBeenAddedBlockedPackets;
+		}
+
+
+
+		public void setHasBeenAddedBlockedPackets(boolean hasBeenAddedBlockedPackets) {
+			this.hasBeenAddedBlockedPackets = hasBeenAddedBlockedPackets;
+		}
+
+
 
 		public double getTimeConnectionEstablish() {
 			return timeConnectionEstablish;
@@ -490,6 +602,16 @@ public class RoutingPerformance {
 		public void setDuration(double duration) {
 			this.duration = duration;
 		}
+
+		public String getActualPathTaken() {
+			return actualPathTaken;
+		}
+
+		public void setActualPathTaken(String actualPathTaken) {
+			this.actualPathTaken = actualPathTaken;
+		}
+		
+		
 		
 		
 		
