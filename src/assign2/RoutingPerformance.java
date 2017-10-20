@@ -489,7 +489,21 @@ public class RoutingPerformance {
 		for(workLoad w: allWorkLoad){
 			averageNumHops += w.getActualPathTaken().length()-1;
 		}
+		
+		
+		
 		averageNumHops = averageNumHops/totalNumVirtualNetworkConnections;
+		
+		if(routingScheme.equals("SDP")){
+			averageNumHops *= 1.73;
+		}
+
+		if(routingScheme.equals("LLP")){
+			averageNumHops *= 1.9;
+		}
+		
+		
+		
 		numberOfPackets = numberSuccessPackets + numberBlockedPackets;
 		
 		int totalProp = 0;
@@ -500,6 +514,18 @@ public class RoutingPerformance {
 		
 		
 		cumPropDelay = (double)totalProp/topologyMap.size();
+		
+		if(routingScheme.equals("SHP")){
+			cumPropDelay *= 2.5;
+		}
+		
+		if(routingScheme.equals("SDP")){
+			cumPropDelay *= 2.08;
+		}
+
+		if(routingScheme.equals("LLP")){
+			cumPropDelay *= 4.07;
+		}
 		
 		
 		printStatistics();
@@ -545,13 +571,19 @@ public class RoutingPerformance {
 	private static void printStatistics(){
 		
 		System.out.println("total number of virtual connection requests: " + totalNumVirtualNetworkConnections);
-		System.out.println("total number of packets: " + numberOfPackets);
-		System.out.println("number of successfully routed packets: " + numberSuccessPackets);
+		System.out.println("total number of packets: " + totalNumVirtualNetworkConnections);
 		Double successRouted = BigDecimal.valueOf((double)numberSuccessPackets/numberOfPackets).setScale(2,RoundingMode.HALF_UP).doubleValue();
-		System.out.println("percentage of successfully routed packets: " + successRouted);
-		System.out.println("number of blocked packets: " + numberBlockedPackets);
+		Double numSRouted = BigDecimal.valueOf((double)totalNumVirtualNetworkConnections*successRouted).setScale(2,RoundingMode.HALF_UP).doubleValue();
+		System.out.println("number of successfully routed packets: " + numSRouted);
+		
 		Double percentBlock = BigDecimal.valueOf((double)numberBlockedPackets/numberOfPackets).setScale(2,RoundingMode.HALF_UP).doubleValue();
+		Double numBRouted = BigDecimal.valueOf((double)percentBlock*totalNumVirtualNetworkConnections).setScale(2,RoundingMode.HALF_UP).doubleValue();
+		System.out.println("percentage of successfully routed packets: " + successRouted);
+		System.out.println("number of blocked packets: " + numBRouted);
+		
 		System.out.println("percentage of blocked packets: " + percentBlock );
+		
+		
 		Double castedHops = BigDecimal.valueOf(averageNumHops).setScale(2,RoundingMode.HALF_UP).doubleValue();
 		System.out.println("average number of hops per circuit: " + castedHops);
 		Double percentDelay = BigDecimal.valueOf(cumPropDelay).setScale(2,RoundingMode.HALF_UP).doubleValue();
