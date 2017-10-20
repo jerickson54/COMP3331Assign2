@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -12,6 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -56,11 +59,11 @@ public class RoutingPerformance {
 		RoutingPerformance p = new RoutingPerformance();
 		
 		//for testing in eclipse
-		String routingScheme = "SHP";
+		//String routingScheme = "SHP";
 		
 		
 		
-	/*	
+	
 	if(args.length!= 5){
 	
 		System.out.println("Missing arguements");
@@ -71,27 +74,30 @@ public class RoutingPerformance {
 	
 	//either circuit or packet only
 	String networkScheme = args[0];
-	if(networkScheme.equals("CIRCUIT") || networkScheme.equals("PACKET")){
-		System.out.println("Network scheme can only be CIRCUIT or PACKET. Try again.");
+	if(!networkScheme.equals("CIRCUIT")){
+		System.out.println("This program only supports CIRCUIT scheme. Try again.");
 		return;
 	}
 	
 	//can only be SHP, SDP, or LLP
 	String routingScheme = args[1];
-	if(routingScheme.equals("SHP") || routingScheme.equals("SDP") || routingScheme.equals("LLP")){
+	if(!(routingScheme.equals("SHP")) && !(routingScheme.equals("SDP") )&& !(routingScheme.equals("LLP"))){
 		System.out.println("Routing scheme can only be SHP,SDP, or LLP. Try again.");
 		return;
 	}
 	
-	*/
+	
 	//parse the topology File
-	String topologyFileName = "topology.txt";
-	//String topologyFileName = args[2];
+	//String topologyFileName = "topology.txt";
+	String topologyFileName = args[2];
 	
 	//use a map to store topology data
 	Map <String, valueTopology> topologyMap = new HashMap<String, valueTopology>();
 	//calculate all the paths
 	Map <String,Boolean> allPaths = new HashMap<String, Boolean>();
+	
+	//link capacity boolean checker
+	Map<String,Boolean> linkCapacityCheck = new HashMap<String,Boolean>();
 	
 	
 	
@@ -109,7 +115,11 @@ public class RoutingPerformance {
 		String key = details[0] + details[1];
 		//String inverseKey = details[1] + details[0];
 		
+		
+		
 		allPaths.put(key, true);
+		
+		linkCapacityCheck.put(key,true);
 		
 		//allPaths.put(inverseKey,true);
 
@@ -150,8 +160,8 @@ public class RoutingPerformance {
 	
 	
 	//parse the workloadFile
-	//String workloadFile = args[3];
-	String workloadFile = "workload.txt";
+	String workloadFile = args[3];
+	//String workloadFile = "workload.txt";
 	
 	//use an arrayList to store workload information
 	ArrayList<workLoad> allWorkLoad = new ArrayList<workLoad>();
@@ -184,15 +194,15 @@ public class RoutingPerformance {
 
 	totalNumVirtualNetworkConnections = allWorkLoad.size();
 	
-	int packetRate = 2; 
-	/*
+	//int packetRate = 2; 
+	
 	//packet rate is positive integer 
 	int packetRate = Integer.parseInt(args[4]);
 	if(packetRate < 0){
 		System.out.println("Packet rate cannnot be negative. Try again");
 		return;
 	}
-	*/
+	
 	
 	//timer stuff
 	Date currentTime = new Date();
@@ -200,8 +210,7 @@ public class RoutingPerformance {
 	
 	long startTime = System.nanoTime();
 	
-	//dijkstra's algorithm with cost of each link as 1 and no delay or load factor
-	if(routingScheme.equals("SHP")){
+	
 		
 		//find the time when this is complete
 		double maxTimeRun = 0.0;
@@ -238,7 +247,7 @@ public class RoutingPerformance {
 
 			
 			//check if the paths need open
-			if((allWorkLoad.get(i).getDuration() < (double)System.nanoTime() - startTime /10000000)&& allWorkLoad.get(i).getActualPathTaken() != null){
+			if((allWorkLoad.get(i).getDuration() < (double)(System.nanoTime() - startTime) /10000000)&& allWorkLoad.get(i).getActualPathTaken() != null){
 				for(int c = 0; c < allWorkLoad.get(i).getActualPathTaken().length()-1;++c)
 					allPaths.put(Character.toString(allWorkLoad.get(i).getActualPathTaken().charAt(c))+Character.toString(allWorkLoad.get(i).getActualPathTaken().charAt(c+1)),true);
 	
@@ -298,23 +307,138 @@ public class RoutingPerformance {
 				visited.add(allWorkLoad.get(i).getSourceNode());
 				buildAllPaths(buildGraph(allPaths,p), visited, allWorkLoad.get(i).getDestinationNode()); 
 				
-				//find the shortest path. If the same then get the last one
-				int shortest = pathsToDest.get(0).length();
+				
+				//path this will be taking at the end of the day
 				String desiredPath = "";
+				
+				
+				 
+				
+				//next three if statements determine which algorithm is used to determine path
+				//we already have all the possible paths in the form of pathToDest
+				
+				//dijkstra's algorithm with cost of each link as 1 and no delay or load factor
+				if(routingScheme.equals("SHP")){
+					//find the shortest path. If the same then get the last one
+				int shortest = pathsToDest.get(0).length();
 				for(String s: pathsToDest){
-					if(s.length() <= shortest){
+					if(s.length() < shortest){
 						shortest = s.length();
 						desiredPath = s;
 					}
+					if(s.length() == shortest){
+						Random r = new Random();
+						int randNum = r.nextInt(10)+1;
+						if(randNum < 6){
+							shortest = s.length();
+							desiredPath = s;
+						}
+						
+						
+					}
 				}
+				}
+				
+				//shortest path where path refers to cumulative propagation delay
+				//ignores number of hops and load
+				if(routingScheme.equals("SDP")){
+					//set smallest prop delay
+					double smallestPropdelay = 9999999.9;
+					double currentProp = 0.0;
 					
+					for(String s: pathsToDest){
+						
+						
+						for(int x = 0; x < s.length()-1; ++x)
+							currentProp += (double)topologyMap.get(Character.toString(s.charAt(x)) + Character.toString(s.charAt(x+1))).getPropogationDelay();
+						
+						
+						if(currentProp < smallestPropdelay){
+							//System.out.println(currentProp + " is smaller than " + smallestPropdelay);
+							smallestPropdelay = currentProp;
+							///System.out.println("Chosen path: " + s);
+							desiredPath = s;
+						}
+						
+						currentProp = 0.0;
+					}
+				}
+				
+				
+				//finds the least loaded path
+				//path is defined as maximum load on any link in path
+				//load changes with time
+				
+				
+				if(routingScheme.equals("LLP")){
+					
+					int smallestLinkLoad = 999999;
+					int currentLinkLoad = 0;
+					
+					for(String s: pathsToDest){
+						
+						for(int x = 0; x < s.length()-1; ++x)
+							currentLinkLoad += (double)topologyMap.get(Character.toString(s.charAt(x)) + Character.toString(s.charAt(x+1))).getLinkCapacity();
+						
+						
+						
+						if(currentLinkLoad < smallestLinkLoad){
+							smallestLinkLoad = currentLinkLoad;
+							desiredPath = s;
+						}
+						
+						currentLinkLoad = 0;
+					}
+					
+				}
+				
+				//System.out.println(desiredPath);
+				//System.out.println(allWorkLoad.get(i).getDuration());
+				//increment link load accordingly
+				
+				
+				if((allWorkLoad.get(i).getDuration() > ((double)(System.nanoTime() - startTime) /10000000))){
+					
+					
+					for(int x = 0; x < desiredPath.length()-1; ++x){
+						//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+						
+						if((linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))))){
+							//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+						topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).setLinkCapacity(topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).getLinkCapacity() + 1);
+						linkCapacityCheck.put(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1)),false);
+						//System.out.println(topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).getLinkCapacity());
+						//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+							}
+						
+						}
+				}
+				
+				
+				//decrement link load once finished
+				if((allWorkLoad.get(i).getDuration() < (double)(System.nanoTime() - startTime) /10000000)){
+					//System.out.println("Bottom");
+					for(int x = 0; x < desiredPath.length()-1; ++x){
+						//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+						
+						if(!(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))))){
+							//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+						topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).setLinkCapacity(topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).getLinkCapacity() - 1);
+						linkCapacityCheck.put(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1)),true);
+						//System.out.println(topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).getLinkCapacity());
+						//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+						
+							}
+						}
+				}
+				
 				
 					//continue to populate the actual path taken
 					if(allWorkLoad.get(i).getActualPathTaken() == null)
 					allWorkLoad.get(i).setActualPathTaken(desiredPath);
 					
 					//close the path chosen
-					if(allWorkLoad.get(i).getDuration() > (double)System.nanoTime() - startTime /10000000){
+					if(allWorkLoad.get(i).getDuration() > ((double)System.nanoTime() - startTime) /10000000){
 					for( int c = 0; c < desiredPath.length()-1; ++c)
 						allPaths.put(Character.toString(desiredPath.charAt(c))+Character.toString(desiredPath.charAt(c+1)),false);
 					}
@@ -374,11 +498,13 @@ public class RoutingPerformance {
 		totalProp += entry.getValue().getPropogationDelay();
 		}
 		
+		
 		cumPropDelay = (double)totalProp/topologyMap.size();
+		
+		
 		printStatistics();
 		
-	} //SHP bracket
-	//double timeElapsed = (System.nanoTime() - startTime)/10000000;
+	
 	
 	
 	
@@ -418,14 +544,18 @@ public class RoutingPerformance {
 	
 	private static void printStatistics(){
 		
-		System.out.println("Total number of virtual connection requests: " + totalNumVirtualNetworkConnections);
-		System.out.println("Total number of packets: " + numberOfPackets);
-		System.out.println("Total number of successfully routed packets: " + numberSuccessPackets);
-		System.out.println("Percentage of successfully routed packets: " + (double)numberSuccessPackets/numberOfPackets);
-		System.out.println("Number of blocked packets: " + numberBlockedPackets);
-		System.out.println("Percentage of blocked packets: " + (double)numberBlockedPackets/numberOfPackets );
-		System.out.println("Average number of hops per circuit: " + averageNumHops);
-		System.out.println("Average cumulative propagation delay per circuit: " + cumPropDelay);
+		System.out.println("total number of virtual connection requests: " + totalNumVirtualNetworkConnections);
+		System.out.println("total number of packets: " + numberOfPackets);
+		System.out.println("number of successfully routed packets: " + numberSuccessPackets);
+		Double successRouted = BigDecimal.valueOf((double)numberSuccessPackets/numberOfPackets).setScale(2,RoundingMode.HALF_UP).doubleValue();
+		System.out.println("percentage of successfully routed packets: " + successRouted);
+		System.out.println("number of blocked packets: " + numberBlockedPackets);
+		Double percentBlock = BigDecimal.valueOf((double)numberBlockedPackets/numberOfPackets).setScale(2,RoundingMode.HALF_UP).doubleValue();
+		System.out.println("percentage of blocked packets: " + percentBlock );
+		Double castedHops = BigDecimal.valueOf(averageNumHops).setScale(2,RoundingMode.HALF_UP).doubleValue();
+		System.out.println("average number of hops per circuit: " + castedHops);
+		Double percentDelay = BigDecimal.valueOf(cumPropDelay).setScale(2,RoundingMode.HALF_UP).doubleValue();
+		System.out.println("average cumulative propagation delay per circuit: " + percentDelay);
 	}
 	
 	 private static void buildPathsToDest(LinkedList<String> visited) {
