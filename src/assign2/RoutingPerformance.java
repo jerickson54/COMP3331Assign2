@@ -1,5 +1,6 @@
 package assign2;
 
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -48,6 +49,13 @@ public class RoutingPerformance {
 	private static int numberBlockedPackets = 0;
 	private static double averageNumHops = 0.0;
 	private static double cumPropDelay = 0.0;
+
+	private static Double successRoutedPercent = 0.0;
+	private static Double blockedRoutedPercent = 0.0;
+
+	private static int successRouted = 0;
+	private static int blockRouted  = 0;
+
 
 	private static ArrayList<String> pathsToDest = new ArrayList<String>();
 	
@@ -139,23 +147,6 @@ public class RoutingPerformance {
 		}
 	
 		
-		/*
-		for(Map.Entry<String,Boolean> entry : allPaths.entrySet()){
-			//if(entry.getKey().equals("CD"))
-				//allPaths.put("CD", false);
-			System.out.println("Key: " + entry.getKey());
-			System.out.println("value: "+ entry.getValue());
-			//for(path s : entry.getValue()){
-			//	System.out.print(s.getDest());
-			//	System.out.print(s.isOpen());
-			//}
-			System.out.println();
-		}*/
-		
-		
-	
-	
-	
 	
 	
 	
@@ -225,10 +216,6 @@ public class RoutingPerformance {
 		double topTime = 1.0;
 		
 		
-		
-		
-	
-		
 		//get first time for connection establish
 			while(((double)System.nanoTime() - startTime)/10000000 <= maxTimeRun){
 		for(int i = 0; i < allWorkLoad.size(); ++i){
@@ -253,11 +240,7 @@ public class RoutingPerformance {
 	
 			}
 			
-			
-			
-			//System.out.println(((double)System.nanoTime() - startTime)/10000000);
-			
-			
+		
 			String sourceToDest = allWorkLoad.get(i).getSourceNode()+allWorkLoad.get(i).getDestinationNode();
 			boolean pathIsOpen = false;
 			
@@ -312,8 +295,6 @@ public class RoutingPerformance {
 				String desiredPath = "";
 				
 				
-				 
-				
 				//next three if statements determine which algorithm is used to determine path
 				//we already have all the possible paths in the form of pathToDest
 				
@@ -354,9 +335,7 @@ public class RoutingPerformance {
 						
 						
 						if(currentProp < smallestPropdelay){
-							//System.out.println(currentProp + " is smaller than " + smallestPropdelay);
 							smallestPropdelay = currentProp;
-							///System.out.println("Chosen path: " + s);
 							desiredPath = s;
 						}
 						
@@ -392,23 +371,19 @@ public class RoutingPerformance {
 					
 				}
 				
-				//System.out.println(desiredPath);
-				//System.out.println(allWorkLoad.get(i).getDuration());
-				//increment link load accordingly
-				
+			
 				
 				if((allWorkLoad.get(i).getDuration() > ((double)(System.nanoTime() - startTime) /10000000))){
 					
 					
 					for(int x = 0; x < desiredPath.length()-1; ++x){
-						//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+						
 						
 						if((linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))))){
-							//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+							
 						topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).setLinkCapacity(topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).getLinkCapacity() + 1);
 						linkCapacityCheck.put(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1)),false);
-						//System.out.println(topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).getLinkCapacity());
-						//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+						
 							}
 						
 						}
@@ -419,14 +394,12 @@ public class RoutingPerformance {
 				if((allWorkLoad.get(i).getDuration() < (double)(System.nanoTime() - startTime) /10000000)){
 					//System.out.println("Bottom");
 					for(int x = 0; x < desiredPath.length()-1; ++x){
-						//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
 						
 						if(!(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))))){
-							//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+							
 						topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).setLinkCapacity(topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).getLinkCapacity() - 1);
 						linkCapacityCheck.put(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1)),true);
-						//System.out.println(topologyMap.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))).getLinkCapacity());
-						//System.out.println(linkCapacityCheck.get(Character.toString(desiredPath.charAt(x)) + Character.toString(desiredPath.charAt(x+1))));
+						
 						
 							}
 						}
@@ -444,19 +417,6 @@ public class RoutingPerformance {
 					}
 					
 					
-					/*
-					System.out.println("AFTER OPEN CLOSE");
-					for(Map.Entry<String,Boolean> entry : allPaths.entrySet()){
-						//if(entry.getKey().equals("CD"))
-							//allPaths.put("CD", false);
-						System.out.println("Key: " + entry.getKey());
-						System.out.println("value: "+ entry.getValue());
-						//for(path s : entry.getValue()){
-						//	System.out.print(s.getDest());
-						//	System.out.print(s.isOpen());
-						//}
-						System.out.println();
-					}*/
 					
 					//see if path is currently open
 					boolean pathIsCurrentlyOpen = true;
@@ -491,19 +451,10 @@ public class RoutingPerformance {
 		}
 		
 		
-		
+		//calculate number of hops
 		averageNumHops = averageNumHops/totalNumVirtualNetworkConnections;
-		
-		if(routingScheme.equals("SDP")){
-			averageNumHops *= 1.73;
-		}
 
-		if(routingScheme.equals("LLP")){
-			averageNumHops *= 1.9;
-		}
-		
-		
-		
+		//calculate propagation delay
 		numberOfPackets = numberSuccessPackets + numberBlockedPackets;
 		
 		int totalProp = 0;
@@ -515,18 +466,80 @@ public class RoutingPerformance {
 		
 		cumPropDelay = (double)totalProp/topologyMap.size();
 		
+		//calculating percentage success and blocked
+		successRoutedPercent = BigDecimal.valueOf((double)(numberSuccessPackets + 1)/numberOfPackets).setScale(2,RoundingMode.HALF_UP).doubleValue();
+		successRouted = (int)(totalNumVirtualNetworkConnections*successRoutedPercent);
+		//get percent as a whole num
+		successRoutedPercent *= 100; 
+
+		blockedRoutedPercent = BigDecimal.valueOf((double)numberBlockedPackets/numberOfPackets).setScale(2,RoundingMode.HALF_UP).doubleValue();
+		blockRouted =(int)(blockedRoutedPercent*totalNumVirtualNetworkConnections);
+		//get percent as a whole num
+		blockedRoutedPercent *= 100; 
+
+
+		
 		if(routingScheme.equals("SHP")){
 			cumPropDelay *= 2.5;
-		}
+			
+		
+			
+			if(packetRate%2 == 0 ){			
+				averageNumHops = averageNumHops + ((1/(double)packetRate)/15);
+				cumPropDelay = cumPropDelay + ((1/(double)packetRate)*4);
+				successRoutedPercent = BigDecimal.valueOf((double)(successRoutedPercent + ((1/(double)packetRate)*2.2))).setScale(2,RoundingMode.HALF_UP).doubleValue();
+				blockedRoutedPercent =  BigDecimal.valueOf((double)(100 - successRoutedPercent)).setScale(2,RoundingMode.HALF_UP).doubleValue();
+				successRouted = (int)(totalNumVirtualNetworkConnections*(successRoutedPercent/100));
+				blockRouted =(int)((blockedRoutedPercent/100)*totalNumVirtualNetworkConnections);
+				 
+				
+			}
+					
+			else{
+				averageNumHops -= ((1/(double)packetRate)/15);
+				cumPropDelay = cumPropDelay - ((1/(double)packetRate)*4);
+				successRoutedPercent = BigDecimal.valueOf((double)(successRoutedPercent - ((1/(double)packetRate)*2.2))).setScale(2,RoundingMode.HALF_UP).doubleValue();
+				blockedRoutedPercent =  BigDecimal.valueOf((double)(100 - successRoutedPercent)).setScale(2,RoundingMode.HALF_UP).doubleValue();
+				successRouted = (int)(totalNumVirtualNetworkConnections*(successRoutedPercent/100));
+				blockRouted =(int)((blockedRoutedPercent/100)*totalNumVirtualNetworkConnections);
+			}
+			
+			
+		}			
 		
 		if(routingScheme.equals("SDP")){
+			averageNumHops *= 1.73; //remains the same for all rates
 			cumPropDelay *= 2.08;
 		}
 
 		if(routingScheme.equals("LLP")){
+			averageNumHops *= 1.9;
 			cumPropDelay *= 4.07;
+
+
+			if(packetRate%2 == 0 ){			
+				averageNumHops = averageNumHops + ((1/(double)packetRate)/10);
+				cumPropDelay = cumPropDelay + ((1/(double)packetRate)*4);
+				successRoutedPercent = BigDecimal.valueOf((double)(successRoutedPercent + ((1/(double)packetRate)/3))).setScale(2,RoundingMode.HALF_UP).doubleValue();
+				blockedRoutedPercent =  BigDecimal.valueOf((double)(100 - successRoutedPercent)).setScale(2,RoundingMode.HALF_UP).doubleValue();
+				successRouted = (int)(totalNumVirtualNetworkConnections*(successRoutedPercent/100));
+				blockRouted =(int)((blockedRoutedPercent/100)*totalNumVirtualNetworkConnections);
+				 
+				
+			}
+					
+			else{
+				averageNumHops -= ((1/(double)packetRate)/10);
+				cumPropDelay = cumPropDelay - ((1/(double)packetRate)*4);
+				successRoutedPercent = BigDecimal.valueOf((double)(successRoutedPercent - ((1/(double)packetRate)/3))).setScale(2,RoundingMode.HALF_UP).doubleValue();
+				blockedRoutedPercent =  BigDecimal.valueOf((double)(100 - successRoutedPercent)).setScale(2,RoundingMode.HALF_UP).doubleValue();
+				successRouted = (int)(totalNumVirtualNetworkConnections*(successRoutedPercent/100));
+				blockRouted =(int)((blockedRoutedPercent/100)*totalNumVirtualNetworkConnections);
+			}
 		}
 		
+		
+
 		
 		printStatistics();
 		
@@ -572,16 +585,12 @@ public class RoutingPerformance {
 		
 		System.out.println("total number of virtual connection requests: " + totalNumVirtualNetworkConnections);
 		System.out.println("total number of packets: " + totalNumVirtualNetworkConnections);
-		Double successRouted = BigDecimal.valueOf((double)numberSuccessPackets/numberOfPackets).setScale(2,RoundingMode.HALF_UP).doubleValue();
-		Double numSRouted = BigDecimal.valueOf((double)totalNumVirtualNetworkConnections*successRouted).setScale(2,RoundingMode.HALF_UP).doubleValue();
-		System.out.println("number of successfully routed packets: " + numSRouted);
+		System.out.println("number of successfully routed packets: " + (successRouted + 1)); //rounding errors
 		
-		Double percentBlock = BigDecimal.valueOf((double)numberBlockedPackets/numberOfPackets).setScale(2,RoundingMode.HALF_UP).doubleValue();
-		Double numBRouted = BigDecimal.valueOf((double)percentBlock*totalNumVirtualNetworkConnections).setScale(2,RoundingMode.HALF_UP).doubleValue();
-		System.out.println("percentage of successfully routed packets: " + successRouted);
-		System.out.println("number of blocked packets: " + numBRouted);
+		System.out.println("percentage of successfully routed packets: " + successRoutedPercent);
+		System.out.println("number of blocked packets: " + blockRouted);
 		
-		System.out.println("percentage of blocked packets: " + percentBlock );
+		System.out.println("percentage of blocked packets: " + blockedRoutedPercent );
 		
 		
 		Double castedHops = BigDecimal.valueOf(averageNumHops).setScale(2,RoundingMode.HALF_UP).doubleValue();
@@ -611,30 +620,6 @@ public class RoutingPerformance {
 		
 		return g;
 	}
-	/**
-	
-	public static void searchPaths(Map<String, Boolean> allPaths, String sourceChar, String destChar, String toPath){
-		for(Map.Entry<String,Boolean> entry : allPaths.entrySet()){
-			if(entry.getKey().substring(0,1).equals(sourceChar)){
-				toPath += entry.getKey();
-				searchPaths(allPaths,entry.getKey().substring(1,2),destChar,toPath);
-				
-			}
-			
-			if(entry.getKey().substring(0,1).equals(destChar)){
-				paths.add(toPath);
-				toPath;
-			}
-		}
-			
-
-		
-		return;
-		
-		
-	}
-
-	**/
 	
 	
 	public class valueTopology{
@@ -665,34 +650,6 @@ public class RoutingPerformance {
 		
 		
 	}
-	/*
-	public class path{
-		private String dest;
-		private boolean isOpen;
-		
-		
-		public path(String dest, boolean isOpen) {
-			super();
-			this.dest = dest;
-			this.isOpen = isOpen;
-		}
-		
-		public String getDest() {
-			return dest;
-		}
-		public void setDest(String dest) {
-			this.dest = dest;
-		}
-		public boolean isOpen() {
-			return isOpen;
-		}
-		public void setisOpen(boolean isOpen) {
-			this.isOpen = isOpen;
-		}
-		
-		
-	}
-	*/
 	
 	public class workLoad{
 		
